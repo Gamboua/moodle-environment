@@ -1,0 +1,31 @@
+---
+  - name: Configurando máquina master
+    hosts: master.local
+    become: true
+    become_method: sudo
+    vars:
+      - moodle_repo: "https://github.com/moodle/moodle.git"
+      - moodle_branch: "v3.1.0"
+    tasks:
+      - name: Instalando pacotes
+        apt: "name=apache2 update_cache=true state=present"
+        with_items:
+          - apache2
+          - php5
+          - git
+          - php5-pgsql
+        notify:
+          - restart apache2
+
+      - name: Checar se diretorio html existe
+        stat: path=/var/www/html/
+        register: html
+        ignore_errors: true
+
+      - name: Clonar repositorio
+        git: repo={{ moodle_repo}} dest=/var/www/html/moodle/ version={{ moodle_branch }}
+        when: html.stat.isdir is defined
+
+    handlers:
+      - name: restart apache2
+        service: name=apache2 state=restarted
