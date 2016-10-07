@@ -1,0 +1,10 @@
+---
+moodle_repo:
+moodle_branch:
+moodle_moodledata_path:
+moodle_moodle_dir:
+moodle_www:
+db_host:
+db_name:
+db_user: 
+db_pass:

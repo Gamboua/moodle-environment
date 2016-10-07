@@ -3,9 +3,9 @@
     hosts: master.local
     become: true
     become_method: sudo
-    vars:
-      - moodle_repo: "https://github.com/moodle/moodle.git"
-      - moodle_branch: "v3.1.0"
+    vars_files:
+      - external_vars.yml
+
     tasks:
       - name: Instalando pacotes
         apt: "name=apache2 update_cache=true state=present"
@@ -13,7 +13,12 @@
           - apache2
           - php5
           - git
+          - curl
+          - php5-gd
+          - php5-xmlrpc
+          - php5-intl
           - php5-pgsql
+          - php5-curl
         notify:
           - restart apache2
 
@@ -23,8 +28,25 @@
         ignore_errors: true
 
       - name: Clonar repositorio
-        git: repo={{ moodle_repo}} dest=/var/www/html/moodle/ version={{ moodle_branch }}
+        git: repo={{ moodle_repo}} dest={{ moodle_moodle_dir }} version={{ moodle_branch }}
         when: html.stat.isdir is defined
+
+      - name: Criando moodledata
+        file: path={{ moodle_moodledata_path }} state=directory mode=0777
+
+      - name: Adicionando config.php
+        template: src=moodle_config.tpl dest={{ moodle_moodle_dir }}/config.php
+
+      - name: Criar virtualhost
+        template: src=moodle_virtualhost.tpl dest=/etc/apache2/sites-available/moodle.conf
+
+      - name: Criar link simbolico
+        file:
+          src: /etc/apache2/sites-available/moodle.conf
+          dest: /etc/apache2/sites-enabled/moodle.conf
+          state: link
+        notify:
+          - restart apache2
 
     handlers:
       - name: restart apache2
