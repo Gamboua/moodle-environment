@@ -1,6 +1,6 @@
 ---
   - name: Configurando máquina master
-    hosts: master.local
+    hosts: master
     become: true
     become_method: sudo
     vars_files:
@@ -19,6 +19,9 @@
           - php5-intl
           - php5-pgsql
           - php5-curl
+          - php5-memcached
+          - php5-memcache
+          - memcached
         notify:
           - restart apache2
 
