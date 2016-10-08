@@ -1,0 +1,57 @@
+---
+  - name: Configurando máquina master
+    hosts: manager.local
+    become: true
+    become_method: sudo
+    vars_files:
+      - external_vars.yml
+
+    tasks:
+      - name: Instalacao dependencias do gitlab
+        apt: name={{ item }} state=present update_cache=no force=yes
+        with_items:
+          - curl
+          - openssh-server
+          - ca-certificates
+          - postfix
+          - apt-transport-https
+          - ansible
+
+# CONFIGURACAO GITLAB
+
+      - name: Adicionando repositorio
+        apt_repository: repo={{ item }} state=present
+        with_items:
+          - "deb https://packages.gitlab.com/gitlab/gitlab-ce/debian/ jessie main"
+          - "deb-src https://packages.gitlab.com/gitlab/gitlab-ce/debian/ jessie main"
+
+      - name: Adicionando chave
+        shell: curl https://packages.gitlab.com/gpg.key | apt-key add -
+
+      - name: Instalacao gitlab
+        apt: name=gitlab-ce state=present update_cache=yes
+
+      - name: Liberando acesso externo
+        replace: dest=/etc/gitlab/gitlab.rb regexp="{{ item.re }}" replace='{{ item.replace }}'
+        with_items:
+          - { re: "^external_url 'http://.+'$", replace: "external_url 'http://{{ gitlab_www }}:8090'" }
+          - { re: "# unicorn['listen'].+", replace: "unicorn['listen'] = '127.0.0.1'"}
+          - { re: "# unicorn['port'].+", replace: "unicorn['port'] = '8090'"}
+
+      - name: Reconfigurando gitlab
+        command: gitlab-ctl reconfigure
+
+      - name: Reiniciando servico
+        command: gitlab-ctl restart
+        ignore_errors: true
+
+# CONFIGURACAO PUPPET
+
+      - name: Download puppet .deb url
+        get_url: url={{ puppet_deb_url }} dest=/tmp/puppet.deb
+
+      - name: Rodar package puppet
+        command: dpkg -i /tmp/puppet.deb
+
+      - name: Instalar puppet agent
+        apt: name=puppet state=present update_cache=yes
