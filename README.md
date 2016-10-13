@@ -1,3 +1,5 @@
+
+
 Arquivos para deploy do Moodle
 
 Inserir as configurações no arquivo "external_vars.example" e mudar o nome pra external_vars.yml
